@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { CreateDomainDto } from './dto/create-domain.dto';
 import { GetDomainDto } from './dto/get-domain.dto';
 import { InjectModel } from '@nestjs/mongoose';
@@ -20,6 +20,10 @@ export class DomainService {
     };
   }
   async create(createDomainDto: CreateDomainDto) {
-    return await this.domainModel.create(createDomainDto);
+    try {
+      return await this.domainModel.create(createDomainDto);
+    } catch (error) {
+      throw new HttpException('duplicateRecord', HttpStatus.CONFLICT);
+    }
   }
 }

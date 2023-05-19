@@ -9,14 +9,7 @@ import { ConfigModule } from '@nestjs/config';
 @Module({
   imports: [
     ConfigModule.forRoot(),
-    HttpModule.register({
-      maxRedirects: 3,
-      baseURL: process.env.WHO_IS_URL,
-      params: {
-        apiKey: process.env.WHO_IS_API_KEY,
-        outputFormat: 'json',
-      },
-    }),
+    HttpModule,
     MongooseModule.forFeature([{ name: Domain.name, schema: DomainSchema }]),
     ScheduleModule.forRoot(),
   ],

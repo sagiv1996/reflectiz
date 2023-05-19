@@ -2,18 +2,36 @@ import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { AxiosResponse } from 'axios';
-import { query } from 'express';
+import axios from 'axios';
 import { Model } from 'mongoose';
-import { Observable, firstValueFrom } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
 import { Domain, DomainDocument } from 'src/schemas/domain.schema';
 
 @Injectable()
 export class DomainJobService {
-  constructor(
-    @InjectModel(Domain.name) private domainModel: Model<Domain>,
-    private readonly httpService: HttpService,
-  ) {}
+  httpServiceWhoIs: HttpService;
+  httpServiceTotalVirus: HttpService;
+
+  constructor(@InjectModel(Domain.name) private domainModel: Model<Domain>) {
+    this.httpServiceWhoIs = new HttpService(
+      axios.create({
+        baseURL: process.env.WHO_IS_URL,
+        params: {
+          apiKey: process.env.WHO_IS_API_KEY,
+          outputFormat: 'json',
+        },
+      }),
+    );
+
+    this.httpServiceTotalVirus = new HttpService(
+      axios.create({
+        baseURL: process.env.TOTAL_VIRUS_URL,
+        headers: {
+          'x-apikey': process.env.TOTAL_VIRUS_API_KEY,
+        },
+      }),
+    );
+  }
 
   @Cron(CronExpression.EVERY_5_SECONDS)
   async updateNewDomains() {
@@ -27,14 +45,29 @@ export class DomainJobService {
     const updatePromisesArray = [];
 
     for (const domain of domains) {
-      updatePromisesArray.push(this.updateWhoIs(domain));
+      //   updatePromisesArray.push(this.updateWhoIs(domain));
+      updatePromisesArray.push(this.updateTotalVirus(domain));
     }
 
     await Promise.allSettled(updatePromisesArray);
   }
+  private async getDataFromTotalVirus(path: string) {
+    const response = this.httpServiceTotalVirus.get(`/${path}`);
+    return firstValueFrom(response);
+  }
+
+  private async updateTotalVirus(domain: DomainDocument) {
+    try {
+      const { data } = await this.getDataFromTotalVirus(domain.path);
+      domain.virusTotal = data;
+      await domain.save();
+    } catch (error) {
+      console.error(error);
+    }
+  }
 
   private async getDataFromWhoIs(path: string) {
-    const response = this.httpService.get('', {
+    const response = this.httpServiceWhoIs.get('', {
       params: {
         domainName: path,
       },

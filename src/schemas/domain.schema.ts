@@ -3,7 +3,7 @@ import { HydratedDocument } from 'mongoose';
 
 export type DomainDocument = HydratedDocument<Domain>;
 
-@Schema()
+@Schema({ timestamps: true })
 export class Domain {
   @Prop({ required: true, unique: true, index: true, type: String })
   path: string;
@@ -13,6 +13,9 @@ export class Domain {
 
   @Prop({ type: Object })
   whoIs?: object;
+
+  @Prop() createdAt?: Date;
+  @Prop() updatedAt?: Date;
 }
 
 export const DomainSchema = SchemaFactory.createForClass(Domain);

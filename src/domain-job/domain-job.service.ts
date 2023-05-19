@@ -47,6 +47,17 @@ export class DomainJobService {
     await Promise.allSettled(updatePromisesArray);
   }
 
+  @Cron(CronExpression.EVERY_10_MINUTES)
+  async updateExistsDomains() {
+    console.debug('Executing cron job...');
+    const domains = await this.domainModel.find();
+    console.debug(`Found ${domains.length} domains to update.`);
+
+    const updatePromisesArray = this.updateDomainRecords(domains);
+
+    await Promise.allSettled(updatePromisesArray);
+  }
+
   private updateDomainRecords(domains: DomainDocument[]) {
     const updatePromisesArray = [];
     for (const domain of domains) {

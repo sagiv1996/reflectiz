@@ -42,28 +42,40 @@ export class DomainJobService {
     });
     console.debug(`Found ${domains.length} domains to update.`);
 
-    const updatePromisesArray = [];
-
-    for (const domain of domains) {
-      //   updatePromisesArray.push(this.updateWhoIs(domain));
-      updatePromisesArray.push(this.updateTotalVirus(domain));
-    }
+    const updatePromisesArray = this.updateDomainRecords(domains);
 
     await Promise.allSettled(updatePromisesArray);
   }
+
+  private updateDomainRecords(domains: DomainDocument[]) {
+    const updatePromisesArray = [];
+    for (const domain of domains) {
+      updatePromisesArray.push(this.updateDomainRecord(domain));
+    }
+    return updatePromisesArray;
+  }
+
+  private async updateDomainRecord(domain: DomainDocument) {
+    const { data: virusTotal, status: statusVirusTotal } =
+      await this.getDataFromTotalVirus(domain.path);
+    const { data: whoIs, status: statusWhoIs } = await this.getDataFromWhoIs(
+      domain.path,
+    );
+
+    if (statusVirusTotal === 200) {
+      domain.virusTotal = virusTotal;
+    }
+
+    if (statusWhoIs === 200) {
+      domain.whoIs = whoIs;
+    }
+
+    await domain.save();
+  }
+
   private async getDataFromTotalVirus(path: string) {
     const response = this.httpServiceTotalVirus.get(`/${path}`);
     return firstValueFrom(response);
-  }
-
-  private async updateTotalVirus(domain: DomainDocument) {
-    try {
-      const { data } = await this.getDataFromTotalVirus(domain.path);
-      domain.virusTotal = data;
-      await domain.save();
-    } catch (error) {
-      console.error(error);
-    }
   }
 
   private async getDataFromWhoIs(path: string) {
@@ -73,11 +85,5 @@ export class DomainJobService {
       },
     });
     return firstValueFrom(response);
-  }
-
-  private async updateWhoIs(domain: DomainDocument) {
-    const { data } = await this.getDataFromWhoIs(domain.path);
-    domain.whoIs = data;
-    await domain.save();
   }
 }

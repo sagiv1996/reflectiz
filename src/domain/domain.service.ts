@@ -23,7 +23,7 @@ export class DomainService {
     try {
       return await this.domainModel.create(createDomainDto);
     } catch (error) {
-      throw new HttpException('duplicateRecord', HttpStatus.CONFLICT);
+      throw new HttpException('BAD_REQUEST', HttpStatus.BAD_REQUEST);
     }
   }
 }
